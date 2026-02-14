@@ -98,17 +98,6 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;hei
 .zone-remove:hover{color:var(--danger);}
 .hour-header-row{display:grid;grid-template-columns:240px 1fr 36px;margin-bottom:6px;}
 .hour-headers{display:grid;grid-template-columns:repeat(24,1fr);gap:1px;padding:0 6px;position:relative;}
-.header-time-indicator{
-  position:absolute;
-  top:0;bottom:0;
-  width:2px;
-  background:var(--cyan);
-  opacity:0.5;
-  border-radius:1px;
-  z-index:10;
-  pointer-events:none;
-  transition:left 0.15s ease-out;
-}
 .hour-header{text-align:center;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-muted);padding:2px 0;letter-spacing:0.5px;}
 .panel{margin-top:20px;padding:20px 24px;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);}
 .panel-title{font-weight:600;font-size:13px;margin-bottom:14px;display:flex;align-items:center;gap:8px;letter-spacing:0.5px;text-transform:uppercase;color:var(--text-dim);}
@@ -291,6 +280,7 @@ const TZ_DB=buildTzDb();
 
 let zones=[],sliderOffset=0,availMode=false,availability={},customHours={},lastMatches=[];
 const STORAGE_KEY='parallax_state';
+const STORAGE_VERSION=2; // v2: availability uses local hours instead of UTC
 
 function getOffsetStr(tz){try{const p=new Intl.DateTimeFormat('en-US',{timeZone:tz,timeZoneName:'shortOffset'}).formatToParts(new Date());return(p.find(x=>x.type==='timeZoneName')||{}).value||'';}catch{return'';}}
 function getTimeInZone(tz,d){return new Date(d.toLocaleString('en-US',{timeZone:tz}));}
@@ -299,9 +289,10 @@ function formatDate(tz,d){return new Intl.DateTimeFormat('en-US',{timeZone:tz,we
 function getCurrentTime(){return new Date(Date.now()+sliderOffset*60000);}
 function getActiveHours(tz){const c=customHours[tz];if(c&&c.enabled)return{start:c.start,end:c.end};return{start:0,end:24};}
 
-function saveState(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify({zones,customHours,availability}));}catch(e){}}
+function saveState(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify({v:STORAGE_VERSION,zones,customHours,availability}));}catch(e){}}
 function loadState(){
   try{const r=localStorage.getItem(STORAGE_KEY);if(!r)return false;const s=JSON.parse(r);
+  if(s.v!==STORAGE_VERSION){localStorage.removeItem(STORAGE_KEY);return false;}
   if(s.zones&&s.zones.length){zones=s.zones;customHours=s.customHours||{};availability=s.availability||{};
   zones.forEach(z=>{if(!customHours[z.tz])customHours[z.tz]={start:9,end:18,enabled:false};if(!availability[z.tz])availability[z.tz]=[];});return true;}}catch(e){}return false;
 }
