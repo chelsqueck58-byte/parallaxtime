@@ -64,7 +64,7 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;hei
 .zone-city{font-weight:600;font-size:14px;letter-spacing:0.3px;color:var(--text-bright);}
 .zone-meta{font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;display:flex;gap:8px;align-items:center;}
 .zone-time{color:var(--cyan);font-weight:500;text-shadow:0 0 6px rgba(0,229,255,0.2);}
-.zone-strip{display:grid;grid-template-columns:repeat(24,1fr);gap:1px;padding:8px 6px;}
+.zone-strip{display:grid;grid-template-columns:repeat(24,1fr);gap:1px;padding:8px 6px;position:relative;}
 .hour-block{height:38px;border-radius:3px;position:relative;transition:all 0.1s;cursor:default;display:flex;align-items:center;justify-content:center;}
 .hour-block.clickable{cursor:pointer;}
 .hour-block .hour-label{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--text-muted);opacity:0.7;}
@@ -74,11 +74,41 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;hei
 .hour-block.overlap{background:var(--overlap-bg);border:1px solid rgba(0,229,255,0.2);box-shadow:inset 0 0 8px rgba(0,229,255,0.05);}
 .hour-block.available{background:rgba(255,171,64,0.1);border:1px solid rgba(255,171,64,0.25);}
 .hour-block.available.overlap{background:linear-gradient(135deg,rgba(0,229,255,0.12),rgba(105,240,174,0.12));border:1px solid rgba(105,240,174,0.35);box-shadow:inset 0 0 12px rgba(105,240,174,0.08);}
-.hour-block.current{box-shadow:inset 0 0 0 2px var(--cyan);}
+.hour-block.current{} /* handled by time-indicator now */
+.time-indicator{
+  position:absolute;
+  top:4px;bottom:4px;
+  width:2px;
+  background:var(--cyan);
+  box-shadow:0 0 8px var(--cyan),0 0 16px rgba(0,229,255,0.3);
+  border-radius:1px;
+  z-index:10;
+  pointer-events:none;
+}
+.time-indicator::before{
+  content:'';
+  position:absolute;
+  top:-3px;left:-3px;
+  width:8px;height:8px;
+  background:var(--cyan);
+  border-radius:50%;
+  box-shadow:0 0 6px var(--cyan);
+}
 .zone-remove{display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-muted);transition:all 0.15s;font-size:15px;}
 .zone-remove:hover{color:var(--danger);}
 .hour-header-row{display:grid;grid-template-columns:240px 1fr 36px;margin-bottom:6px;}
-.hour-headers{display:grid;grid-template-columns:repeat(24,1fr);gap:1px;padding:0 6px;}
+.hour-headers{display:grid;grid-template-columns:repeat(24,1fr);gap:1px;padding:0 6px;position:relative;}
+.header-time-indicator{
+  position:absolute;
+  top:0;bottom:0;
+  width:2px;
+  background:var(--cyan);
+  opacity:0.5;
+  border-radius:1px;
+  z-index:10;
+  pointer-events:none;
+  transition:left 0.15s ease-out;
+}
 .hour-header{text-align:center;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-muted);padding:2px 0;letter-spacing:0.5px;}
 .panel{margin-top:20px;padding:20px 24px;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);}
 .panel-title{font-weight:600;font-size:13px;margin-bottom:14px;display:flex;align-items:center;gap:8px;letter-spacing:0.5px;text-transform:uppercase;color:var(--text-dim);}
@@ -351,25 +381,31 @@ function render(){
   const viewTime=getCurrentTime();
   if(!zones.length){container.innerHTML='';container.appendChild(emptyState);emptyState.style.display='';headerRow.style.display='none';overlapPanel.style.display='none';hoursPanel.style.display='none';availPanel.style.display='none';legend.style.display='none';return;}
   emptyState.style.display='none';headerRow.style.display='grid';legend.style.display='flex';
-  document.getElementById('hourHeaders').innerHTML=Array.from({length:24},(_,i)=>`<div class="hour-header">${String(i).padStart(2,'0')}</div>`).join('');
+  document.getElementById('hourHeaders').innerHTML='<div class="header-time-indicator" id="headerIndicator"></div>'+Array.from({length:24},(_,i)=>`<div class="hour-header">${String(i).padStart(2,'0')}</div>`).join('');
+  // Position header indicator based on UTC fractional hour
+  const utcFrac=viewTime.getUTCHours()+viewTime.getUTCMinutes()/60;
+  const hdrPct=(utcFrac/24)*100;
+  requestAnimationFrame(()=>{const hi=document.getElementById('headerIndicator');if(hi)hi.style.left=`calc(${hdrPct}%)`});
   const overlapUTC=findOverlap(viewTime);
   container.innerHTML=zones.map((zone,idx)=>{
     const localTime=formatTime(zone.tz,viewTime),offset=getOffsetStr(zone.tz),localDate=formatDate(zone.tz,viewTime);
     const active=getActiveHours(zone.tz),zoneAvail=availability[zone.tz]||[],isFirst=idx===0;
+    // Calculate time indicator position in UTC (matches block layout which is UTC 0-23)
+    const utcFracZone=viewTime.getUTCHours()+viewTime.getUTCMinutes()/60;
+    const pct=(utcFracZone/24)*100;
     const blocks=Array.from({length:24},(_,utcH)=>{
       const td=new Date(viewTime);td.setUTCHours(utcH,0,0,0);
       const lh=getTimeInZone(zone.tz,td).getHours();
       const isActive=(active.start<active.end)?(lh>=active.start&&lh<active.end):(active.start===active.end?true:(lh>=active.start||lh<active.end));
       const isOverlap=overlapUTC.includes(utcH)&&zones.length>1;
-      const isCurrent=utcH===viewTime.getUTCHours()&&Math.abs(sliderOffset)<60*24;
       const isAvail=zoneAvail.includes(utcH);
       let cls=isActive?'active-hr':'offhours';
-      if(isOverlap)cls='overlap';if(isAvail)cls='available';if(isAvail&&isOverlap)cls='available overlap';if(isCurrent)cls+=' current';
+      if(isOverlap)cls='overlap';if(isAvail)cls='available';if(isAvail&&isOverlap)cls='available overlap';
       const clickable=availMode&&isFirst;if(clickable)cls+=' clickable';
       const handler=clickable?`onclick="toggleAvailHour('${zone.tz}',${utcH})"`:'';
       return `<div class="hour-block ${cls}" ${handler} title="${String(lh).padStart(2,'0')}:00 ${zone.city}"><span class="hour-label">${String(lh).padStart(2,'0')}</span></div>`;
     }).join('');
-    return `<div class="zone-row"><div class="zone-info"><div class="zone-city">${zone.city}</div><div class="zone-meta"><span class="zone-time">${localTime}</span><span>${offset}</span><span>${localDate}</span></div></div><div class="zone-strip">${blocks}</div><div class="zone-remove" onclick="removeZone(${idx})" title="Remove">×</div></div>`;
+    return `<div class="zone-row"><div class="zone-info"><div class="zone-city">${zone.city}</div><div class="zone-meta"><span class="zone-time">${localTime}</span><span>${offset}</span><span>${localDate}</span></div></div><div class="zone-strip"><div class="time-indicator" style="left:calc(6px + (100% - 12px) * ${pct / 100})"></div>${blocks}</div><div class="zone-remove" onclick="removeZone(${idx})" title="Remove">×</div></div>`;
   }).join('');
 
   hoursPanel.style.display='';
