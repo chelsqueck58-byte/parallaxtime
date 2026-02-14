@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parallax — Time Convergence</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #04080f;
+  --bg2: #08101c;
+  --surface: #0c1829;
+  --surface2: #112240;
+  --surface3: #162d50;
+  --border: #1a3355;
+  --border-glow: #1e4976;
+  --text: #cdd9e5;
+  --text-bright: #e8f0f8;
+  --text-dim: #6b8aad;
+  --text-muted: #3d5a80;
+  --cyan: #00e5ff;
+  --cyan-dim: rgba(0,229,255,0.12);
+  --cyan-glow: rgba(0,229,255,0.25);
+  --teal: #00bcd4;
+  --amber: #ffab40;
+  --amber-dim: rgba(255,171,64,0.12);
+  --overlap: #00e5ff;
+  --overlap-bg: rgba(0,229,255,0.08);
+  --business: rgba(0,229,255,0.05);
+  --offhours: rgba(255,255,255,0.015);
+  --danger: #ff5252;
+  --success: #69f0ae;
+  --radius: 8px;
+  --glow-sm: 0 0 12px rgba(0,229,255,0.15);
+  --glow-md: 0 0 24px rgba(0,229,255,0.1);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body {
+  font-family:'Outfit',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+body::before {
+  content:'';
+  position:fixed;
+  top:0;left:0;right:0;bottom:0;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 0%, rgba(0,229,255,0.04) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(0,188,212,0.03) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 30% at 50% 50%, rgba(0,229,255,0.015) 0%, transparent 70%);
+  pointer-events:none;
+  z-index:0;
+}
+
+/* Grid lines background */
+body::after {
+  content:'';
+  position:fixed;
+  top:0;left:0;right:0;bottom:0;
+  background-image:
+    linear-gradient(rgba(0,229,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,0.02) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events:none;
+  z-index:0;
+}
+
+.app { position:relative; z-index:1; }
+
+/* ─── HEADER ─── */
+.header {
+  padding:24px 36px 20px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(12px);
+  background:rgba(4,8,15,0.8);
+  position:sticky;
+  top:0;
+  z-index:50;
+}
+.logo {
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+.logo-mark {
+  width:36px;height:36px;
+  position:relative;
+  display:flex;align-items:center;justify-content:center;
+}
+.logo-mark::before {
+  content:'';
+  position:absolute;
+  width:36px;height:36px;
+  border:2px solid var(--cyan);
+  border-radius:50%;
+  opacity:0.6;
+  animation:pulse-ring 3s ease-in-out infinite;
+}
+.logo-mark::after {
+  content:'';
+  width:8px;height:8px;
+  background:var(--cyan);
+  border-radius:50%;
+  box-shadow:0 0 12px var(--cyan), 0 0 24px rgba(0,229,255,0.3);
+}
+@keyframes pulse-ring {
+  0%,100%{transform:scale(1);opacity:0.6;}
+  50%{transform:scale(1.15);opacity:0.3;}
+}
+.logo h1 {
+  font-size:22px;
+  font-weight:700;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:var(--text-bright);
+}
+.logo h1 span { color:var(--cyan); }
+.logo-sub {
+  font-size:11px;
+  font-weight:400;
+  letter-spacing:3px;
+  text-transform:uppercase;
+  color:var(--text-muted);
+  margin-top:2px;
+}
+.header-actions {
+  display:flex;
+  gap:8px;
+}
+
+/* ─── BUTTONS ─── */
+.btn {
+  padding:8px 18px;
+  border-radius:6px;
+  border:1px solid var(--border);
+  background:var(--surface);
+  color:var(--text);
+  font-family:'Outfit',sans-serif;
+  font-size:13px;
+  font-weight:500;
+  cursor:pointer;
+  transition:all 0.2s;
+  display:flex;align-items:center;gap:6px;
+  letter-spacing:0.5px;
+}
+.btn:hover{border-color:var(--cyan);color:var(--cyan);box-shadow:var(--glow-sm);}
+.btn-glow {
+  background:linear-gradient(135deg,rgba(0,229,255,0.15),rgba(0,188,212,0.1));
+  border-color:var(--cyan);
+  color:var(--cyan);
+  text-shadow:0 0 8px rgba(0,229,255,0.3);
+}
+.btn-glow:hover{background:linear-gradient(135deg,rgba(0,229,255,0.25),rgba(0,188,212,0.2));box-shadow:var(--glow-md);}
+.btn-sm{padding:5px 10px;font-size:11px;}
+.btn-icon{width:34px;height:34px;padding:0;justify-content:center;}
+
+/* ─── TOOLBAR ─── */
+.toolbar {
+  padding:16px 36px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  border-bottom:1px solid var(--border);
+  flex-wrap:wrap;
+  background:rgba(8,16,28,0.6);
+  backdrop-filter:blur(8px);
+}
+.search-wrap {
+  position:relative;
+  flex:1;
+  max-width:380px;
+}
+.search-wrap input {
+  width:100%;
+  padding:10px 14px 10px 38px;
+  border-radius:6px;
+  border:1px solid var(--border);
+  background:var(--surface);
+  color:var(--text-bright);
+  font-family:'Outfit',sans-serif;
+  font-size:13px;
+  font-weight:400;
+  outline:none;
+  transition:all 0.2s;
+  letter-spacing:0.3px;
+}
+.search-wrap input:focus{border-color:var(--cyan);box-shadow:var(--glow-sm);}
+.search-wrap input::placeholder{color:var(--text-muted);}
+.search-icon {
+  position:absolute;left:12px;top:50%;
+  transform:translateY(-50%);
+  color:var(--text-muted);font-size:15px;pointer-events:none;
+}
+.search-results {
+  position:absolute;
+  top:calc(100% + 4px);
+  left:0;right:0;
+  background:var(--surface2);
+  border:1px solid var(--border-glow);
+  border-radius:8px;
+  max-height:280px;
+  overflow-y:auto;
+  z-index:100;
+  display:none;
+  box-shadow:0 8px 32px rgba(0,0,0,0.4),var(--glow-sm);
+}
+.search-results.show{display:block;}
+.search-result-item {
+  padding:10px 14px;
+  cursor:pointer;
+  font-size:13px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  transition:all 0.1s;
+  border-bottom:1px solid rgba(26,51,85,0.5);
+}
+.search-result-item:last-child{border-bottom:none;}
+.search-result-item:hover{background:var(--cyan-dim);color:var(--cyan);}
+.search-result-item .tz-name{font-weight:500;}
+.search-result-item .tz-offset{color:var(--text-muted);font-family:'JetBrains Mono',monospace;font-size:11px;}
+.toolbar-right {
+  display:flex;
+  align-items:center;
+  gap:14px;
+  margin-left:auto;
+}
+.time-slider-wrap {
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.time-slider-label {
+  font-family:'JetBrains Mono',monospace;
+  font-size:13px;
+  color:var(--cyan);
+  min-width:52px;
+  text-align:center;
+  font-weight:500;
+  text-shadow:0 0 8px rgba(0,229,255,0.3);
+}
+input[type="range"]{
+  -webkit-appearance:none;
+  width:180px;height:3px;
+  background:var(--border);
+  border-radius:2px;
+  outline:none;
+}
+input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  width:14px;height:14px;
+  border-radius:50%;
+  background:var(--cyan);
+  cursor:pointer;
+  border:2px solid var(--bg);
+  box-shadow:0 0 8px var(--cyan);
+}
+.date-display {
+  font-size:12px;
+  color:var(--text-dim);
+  font-weight:500;
+  letter-spacing:0.5px;
+}
+
+/* ─── MAIN ─── */
+.main { padding:24px 36px 40px; }
+
+/* ─── ZONE ROWS ─── */
+.zones-container {
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+.zone-row {
+  display:grid;
+  grid-template-columns:240px 1fr 36px;
+  align-items:stretch;
+  background:var(--surface);
+  border-radius:var(--radius);
+  overflow:hidden;
+  transition:all 0.15s;
+  border:1px solid transparent;
+}
+.zone-row:hover{border-color:var(--border);background:var(--surface2);}
+.zone-info {
+  padding:12px 18px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:3px;
+  border-right:1px solid var(--border);
+}
+.zone-city {
+  font-weight:600;
+  font-size:14px;
+  letter-spacing:0.3px;
+  color:var(--text-bright);
+}
+.zone-meta {
+  font-size:11px;
+  color:var(--text-muted);
+  font-family:'JetBrains Mono',monospace;
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+.zone-time {
+  color:var(--cyan);
+  font-weight:500;
+  text-shadow:0 0 6px rgba(0,229,255,0.2);
+}
+.zone-strip {
+  display:grid;
+  grid-template-columns:repeat(24,1fr);
+  gap:1px;
+  padding:8px 6px;
+}
+.hour-block {
+  height:38px;
+  border-radius:3px;
+  position:relative;
+  transition:all 0.1s;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.hour-block .hour-label {
+  font-family:'JetBrains Mono',monospace;
+  font-size:8px;
+  color:var(--text-muted);
+  opacity:0.7;
+}
+.hour-block:hover .hour-label{opacity:1;color:var(--text-bright);}
+.hour-block.business{background:var(--business);}
+.hour-block.offhours{background:var(--offhours);}
+.hour-block.overlap{
+  background:var(--overlap-bg);
+  border:1px solid rgba(0,229,255,0.2);
+  box-shadow:inset 0 0 8px rgba(0,229,255,0.05);
+}
+.hour-block.available{
+  background:rgba(255,171,64,0.1);
+  border:1px solid rgba(255,171,64,0.25);
+}
+.hour-block.available.overlap{
+  background:linear-gradient(135deg,rgba(0,229,255,0.12),rgba(105,240,174,0.12));
+  border:1px solid rgba(105,240,174,0.35);
+  box-shadow:inset 0 0 12px rgba(105,240,174,0.08);
+}
+.hour-block.current{
+  box-shadow:inset 0 0 0 2px var(--cyan);
+  border-radius:3px;
+}
+.zone-remove {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  color:var(--text-muted);
+  transition:all 0.15s;
+  font-size:15px;
+}
+.zone-remove:hover{color:var(--danger);}
+
+/* ─── HOUR HEADERS ─── */
+.hour-header-row {
+  display:grid;
+  grid-template-columns:240px 1fr 36px;
+  margin-bottom:6px;
+}
+.hour-headers {
+  display:grid;
+  grid-template-columns:repeat(24,1fr);
+  gap:1px;
+  padding:0 6px;
+}
+.hour-header {
+  text-align:center;
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px;
+  color:var(--text-muted);
+  padding:2px 0;
+  letter-spacing:0.5px;
+}
+
+/* ─── PANELS ─── */
+.panel {
+  margin-top:20px;
+  padding:20px 24px;
+  background:var(--surface);
+  border-radius:var(--radius);
+  border:1px solid var(--border);
+}
+.panel-title {
+  font-weight:600;
+  font-size:13px;
+  margin-bottom:14px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  letter-spacing:0.5px;
+  text-transform:uppercase;
+  color:var(--text-dim);
+}
+.panel-title .dot {
+  width:7px;height:7px;
+  border-radius:50%;
+  display:inline-block;
+}
+.dot-cyan{background:var(--cyan);box-shadow:0 0 8px var(--cyan);}
+.dot-amber{background:var(--amber);box-shadow:0 0 8px var(--amber);}
+.dot-green{background:var(--success);box-shadow:0 0 8px var(--success);}
+
+/* ─── OVERLAP ─── */
+.overlap-windows {
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.overlap-window {
+  padding:10px 16px;
+  background:linear-gradient(135deg,rgba(0,229,255,0.08),rgba(0,188,212,0.04));
+  border:1px solid rgba(0,229,255,0.2);
+  border-radius:6px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;
+  color:var(--cyan);
+  font-weight:500;
+  text-shadow:0 0 6px rgba(0,229,255,0.2);
+}
+.overlap-detail {
+  margin-top:10px;
+  font-size:11px;
+  color:var(--text-dim);
+  font-family:'JetBrains Mono',monospace;
+  line-height:1.8;
+}
+.no-overlap{color:var(--text-muted);font-size:13px;}
+
+/* ─── CUSTOM HOURS EDITOR ─── */
+.hours-editor {
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:center;
+}
+.hours-zone-chip {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 12px;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:6px;
+  font-size:12px;
+}
+.hours-zone-chip label {
+  color:var(--text-dim);
+  font-weight:500;
+  min-width:80px;
+}
+.hours-zone-chip input {
+  width:56px;
+  padding:4px 6px;
+  border-radius:4px;
+  border:1px solid var(--border);
+  background:var(--surface);
+  color:var(--cyan);
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  text-align:center;
+  outline:none;
+}
+.hours-zone-chip input:focus{border-color:var(--cyan);}
+.hours-zone-chip span{color:var(--text-muted);font-size:11px;}
+
+/* ─── AVAILABILITY PANEL ─── */
+.avail-info {
+  font-size:12px;
+  color:var(--text-dim);
+  margin-bottom:14px;
+  line-height:1.6;
+}
+.avail-actions {
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+/* ─── SHARE MODAL ─── */
+.modal-overlay {
+  position:fixed;inset:0;
+  background:rgba(4,8,15,0.8);
+  z-index:200;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  backdrop-filter:blur(8px);
+}
+.modal-overlay.show{display:flex;}
+.modal {
+  background:var(--surface2);
+  border:1px solid var(--border-glow);
+  border-radius:12px;
+  padding:28px;
+  width:500px;
+  max-width:92vw;
+  box-shadow:0 16px 64px rgba(0,0,0,0.5),var(--glow-md);
+}
+.modal h2 {
+  font-size:18px;
+  font-weight:700;
+  margin-bottom:6px;
+  letter-spacing:0.5px;
+  color:var(--text-bright);
+}
+.modal p{font-size:13px;color:var(--text-dim);margin-bottom:16px;}
+.share-url {
+  width:100%;
+  padding:10px 14px;
+  border-radius:6px;
+  border:1px solid var(--border);
+  background:var(--surface);
+  color:var(--cyan);
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  outline:none;
+  margin-bottom:14px;
+}
+.share-url:focus{border-color:var(--cyan);}
+.modal-actions {
+  display:flex;gap:8px;justify-content:flex-end;
+}
+
+/* ─── TOAST ─── */
+.toast {
+  position:fixed;
+  bottom:24px;left:50%;
+  transform:translateX(-50%) translateY(60px);
+  background:var(--cyan);
+  color:var(--bg);
+  padding:10px 24px;
+  border-radius:6px;
+  font-size:13px;
+  font-weight:600;
+  opacity:0;
+  transition:all 0.3s;
+  z-index:300;
+  letter-spacing:0.5px;
+  box-shadow:0 0 24px rgba(0,229,255,0.3);
+}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+
+/* ─── EMPTY STATE ─── */
+.empty-state {
+  text-align:center;
+  padding:80px 20px;
+}
+.empty-state h3 {
+  font-size:16px;
+  font-weight:600;
+  color:var(--text-dim);
+  margin-bottom:8px;
+  letter-spacing:1px;
+  text-transform:uppercase;
+}
+.empty-state p{font-size:13px;color:var(--text-muted);}
+
+/* ─── KEYBOARD HINT ─── */
+.kbd-hints {
+  position:fixed;
+  bottom:16px;right:24px;
+  display:flex;gap:12px;
+  z-index:10;
+}
+.kbd {
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+  color:var(--text-muted);
+  display:flex;align-items:center;gap:4px;
+}
+.kbd code {
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:3px;
+  padding:2px 6px;
+  font-size:10px;
+}
+
+/* ─── LEGEND ─── */
+.legend {
+  display:flex;
+  gap:16px;
+  margin-top:16px;
+  flex-wrap:wrap;
+}
+.legend-item {
+  display:flex;align-items:center;gap:6px;
+  font-size:11px;color:var(--text-dim);
+}
+.legend-swatch {
+  width:14px;height:14px;border-radius:3px;
+}
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+@media(max-width:768px){
+  .header,.toolbar,.main{padding-left:16px;padding-right:16px;}
+  .zone-row{grid-template-columns:160px 1fr 32px;}
+  .hour-header-row{grid-template-columns:160px 1fr 32px;}
+  .logo-sub{display:none;}
+  input[type="range"]{width:120px;}
+  .kbd-hints{display:none;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-mark"></div>
+    <div>
+      <h1>P<span>A</span>RALLAX</h1>
+      <div class="logo-sub">time convergence</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn" onclick="resetToNow()">⟳ Now</button>
+    <button class="btn" id="availToggleBtn" onclick="toggleAvailMode()">◉ Set Availability</button>
+    <button class="btn btn-glow" onclick="openShareModal()">Share ↗</button>
+  </div>
+</div>
+
+<div class="toolbar">
+  <div class="search-wrap">
+    <span class="search-icon">⌕</span>
+    <input type="text" id="searchInput" placeholder="Add timezone — type city or country…" autocomplete="off">
+    <div class="search-results" id="searchResults"></div>
+  </div>
+  <div class="toolbar-right">
+    <div class="date-display" id="dateDisplay"></div>
+    <div class="time-slider-wrap">
+      <span class="time-slider-label" id="sliderLabel">NOW</span>
+      <input type="range" id="timeSlider" min="0" max="1439" value="0">
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="hour-header-row" id="hourHeaderRow" style="display:none;">
+    <div></div>
+    <div class="hour-headers" id="hourHeaders"></div>
+    <div></div>
+  </div>
+
+  <div class="zones-container" id="zonesContainer">
+    <div class="empty-state" id="emptyState">
+      <h3>Add your first timezone</h3>
+      <p>Press <code style="background:var(--surface2);padding:2px 6px;border-radius:3px;font-size:12px;border:1px solid var(--border);">/</code> or search above</p>
+    </div>
+  </div>
+
+  <!-- Custom Hours Panel -->
+  <div class="panel" id="hoursPanel" style="display:none;">
+    <div class="panel-title"><span class="dot dot-amber"></span>Custom Active Hours</div>
+    <div class="hours-editor" id="hoursEditor"></div>
+  </div>
+
+  <!-- Overlap Panel -->
+  <div class="panel" id="overlapPanel" style="display:none;">
+    <div class="panel-title"><span class="dot dot-cyan"></span>Overlapping Active Hours</div>
+    <div class="overlap-windows" id="overlapWindows"></div>
+    <div class="overlap-detail" id="overlapDetail"></div>
+  </div>
+
+  <!-- Availability Panel -->
+  <div class="panel" id="availPanel" style="display:none;">
+    <div class="panel-title"><span class="dot dot-green"></span>Availability Sharing</div>
+    <div class="avail-info">
+      Click hour blocks above to mark your available slots. Recipients see your availability converted to their local time.
+    </div>
+    <div class="avail-actions">
+      <button class="btn btn-sm" onclick="clearAvailability()">Clear All</button>
+      <button class="btn btn-sm btn-glow" onclick="generateAvailLink()">Generate Share Link</button>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend" id="legend" style="display:none;">
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:var(--business);border:1px solid rgba(0,229,255,0.1);"></div>
+      Active hours
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:var(--overlap-bg);border:1px solid rgba(0,229,255,0.2);"></div>
+      Overlap
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:rgba(255,171,64,0.1);border:1px solid rgba(255,171,64,0.25);"></div>
+      Your availability
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:linear-gradient(135deg,rgba(0,229,255,0.12),rgba(105,240,174,0.12));border:1px solid rgba(105,240,174,0.35);"></div>
+      Available + Overlap
+    </div>
+  </div>
+</div>
+
+<!-- Share Modal -->
+<div class="modal-overlay" id="shareModal">
+  <div class="modal">
+    <h2>Share this view</h2>
+    <p>Anyone with this link sees the same timezones, custom hours, and availability.</p>
+    <input type="text" class="share-url" id="shareUrl" readonly>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeShareModal()">Close</button>
+      <button class="btn btn-glow" onclick="copyShareLink()">Copy Link</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">Copied to clipboard ✓</div>
+
+<!-- Keyboard hints -->
+<div class="kbd-hints">
+  <div class="kbd"><code>/</code> Search</div>
+  <div class="kbd"><code>←→</code> Scrub time</div>
+  <div class="kbd"><code>Esc</code> Clear</div>
+</div>
+
+</div>
+
+<script>
+// ─── TIMEZONE DATABASE ───
+const TZ_DB=[
+  {city:'Hong Kong',tz:'Asia/Hong_Kong',country:'HK'},
+  {city:'Singapore',tz:'Asia/Singapore',country:'SG'},
+  {city:'New York',tz:'America/New_York',country:'US'},
+  {city:'London',tz:'Europe/London',country:'UK'},
+  {city:'Tokyo',tz:'Asia/Tokyo',country:'JP'},
+  {city:'Shanghai',tz:'Asia/Shanghai',country:'CN'},
+  {city:'Sydney',tz:'Australia/Sydney',country:'AU'},
+  {city:'Dubai',tz:'Asia/Dubai',country:'AE'},
+  {city:'Mumbai',tz:'Asia/Kolkata',country:'IN'},
+  {city:'Delhi',tz:'Asia/Kolkata',country:'IN'},
+  {city:'Los Angeles',tz:'America/Los_Angeles',country:'US'},
+  {city:'Chicago',tz:'America/Chicago',country:'US'},
+  {city:'Denver',tz:'America/Denver',country:'US'},
+  {city:'San Francisco',tz:'America/Los_Angeles',country:'US'},
+  {city:'Toronto',tz:'America/Toronto',country:'CA'},
+  {city:'Vancouver',tz:'America/Vancouver',country:'CA'},
+  {city:'São Paulo',tz:'America/Sao_Paulo',country:'BR'},
+  {city:'Buenos Aires',tz:'America/Argentina/Buenos_Aires',country:'AR'},
+  {city:'Mexico City',tz:'America/Mexico_City',country:'MX'},
+  {city:'Paris',tz:'Europe/Paris',country:'FR'},
+  {city:'Berlin',tz:'Europe/Berlin',country:'DE'},
+  {city:'Amsterdam',tz:'Europe/Amsterdam',country:'NL'},
+  {city:'Zurich',tz:'Europe/Zurich',country:'CH'},
+  {city:'Geneva',tz:'Europe/Zurich',country:'CH'},
+  {city:'Madrid',tz:'Europe/Madrid',country:'ES'},
+  {city:'Rome',tz:'Europe/Rome',country:'IT'},
+  {city:'Milan',tz:'Europe/Rome',country:'IT'},
+  {city:'Stockholm',tz:'Europe/Stockholm',country:'SE'},
+  {city:'Moscow',tz:'Europe/Moscow',country:'RU'},
+  {city:'Istanbul',tz:'Europe/Istanbul',country:'TR'},
+  {city:'Cairo',tz:'Africa/Cairo',country:'EG'},
+  {city:'Lagos',tz:'Africa/Lagos',country:'NG'},
+  {city:'Nairobi',tz:'Africa/Nairobi',country:'KE'},
+  {city:'Johannesburg',tz:'Africa/Johannesburg',country:'ZA'},
+  {city:'Seoul',tz:'Asia/Seoul',country:'KR'},
+  {city:'Beijing',tz:'Asia/Shanghai',country:'CN'},
+  {city:'Shenzhen',tz:'Asia/Shanghai',country:'CN'},
+  {city:'Taipei',tz:'Asia/Taipei',country:'TW'},
+  {city:'Bangkok',tz:'Asia/Bangkok',country:'TH'},
+  {city:'Jakarta',tz:'Asia/Jakarta',country:'ID'},
+  {city:'Kuala Lumpur',tz:'Asia/Kuala_Lumpur',country:'MY'},
+  {city:'Manila',tz:'Asia/Manila',country:'PH'},
+  {city:'Riyadh',tz:'Asia/Riyadh',country:'SA'},
+  {city:'Tel Aviv',tz:'Asia/Jerusalem',country:'IL'},
+  {city:'Auckland',tz:'Pacific/Auckland',country:'NZ'},
+  {city:'Honolulu',tz:'Pacific/Honolulu',country:'US'},
+  {city:'Anchorage',tz:'America/Anchorage',country:'US'},
+  {city:'Lima',tz:'America/Lima',country:'PE'},
+  {city:'Bogota',tz:'America/Bogota',country:'CO'},
+  {city:'Lisbon',tz:'Europe/Lisbon',country:'PT'},
+  {city:'Dublin',tz:'Europe/Dublin',country:'IE'},
+  {city:'Helsinki',tz:'Europe/Helsinki',country:'FI'},
+  {city:'Warsaw',tz:'Europe/Warsaw',country:'PL'},
+  {city:'Prague',tz:'Europe/Prague',country:'CZ'},
+  {city:'Vienna',tz:'Europe/Vienna',country:'AT'},
+  {city:'Doha',tz:'Asia/Qatar',country:'QA'},
+  {city:'Abu Dhabi',tz:'Asia/Dubai',country:'AE'},
+  {city:'Ho Chi Minh City',tz:'Asia/Ho_Chi_Minh',country:'VN'},
+  {city:'Colombo',tz:'Asia/Colombo',country:'LK'},
+  {city:'Perth',tz:'Australia/Perth',country:'AU'},
+  {city:'Melbourne',tz:'Australia/Melbourne',country:'AU'},
+  {city:'Osaka',tz:'Asia/Tokyo',country:'JP'},
+  {city:'Hanoi',tz:'Asia/Ho_Chi_Minh',country:'VN'},
+  {city:'Yangon',tz:'Asia/Yangon',country:'MM'},
+  {city:'Karachi',tz:'Asia/Karachi',country:'PK'},
+  {city:'Dhaka',tz:'Asia/Dhaka',country:'BD'},
+  {city:'Kathmandu',tz:'Asia/Kathmandu',country:'NP'},
+];
+
+// ─── STATE ───
+let zones=[];
+let sliderOffset=0;
+let availMode=false;
+// availability: per-zone, array of UTC hours marked available
+let availability={};
+// custom hours per zone: { 'Asia/Hong_Kong': { start:9, end:18 } }
+let customHours={};
+
+// ─── HELPERS ───
+function getOffsetStr(tz){
+  try{
+    const p=new Intl.DateTimeFormat('en-US',{timeZone:tz,timeZoneName:'shortOffset'}).formatToParts(new Date());
+    const t=p.find(x=>x.type==='timeZoneName');
+    return t?t.value:'';
+  }catch{return '';}
+}
+function getTimeInZone(tz,date){
+  return new Date(date.toLocaleString('en-US',{timeZone:tz}));
+}
+function formatTime(tz,date){
+  return new Intl.DateTimeFormat('en-US',{timeZone:tz,hour:'2-digit',minute:'2-digit',hour12:false}).format(date);
+}
+function formatDate(tz,date){
+  return new Intl.DateTimeFormat('en-US',{timeZone:tz,weekday:'short',month:'short',day:'numeric'}).format(date);
+}
+function getCurrentTime(){
+  return new Date(Date.now()+sliderOffset*60000);
+}
+function getActiveHours(tz){
+  if(customHours[tz]) return customHours[tz];
+  return {start:9,end:18};
+}
+
+// ─── SEARCH ───
+const searchInput=document.getElementById('searchInput');
+const searchResults=document.getElementById('searchResults');
+
+searchInput.addEventListener('input',()=>{
+  const q=searchInput.value.trim().toLowerCase();
+  if(q.length<1){searchResults.classList.remove('show');return;}
+  const matches=TZ_DB.filter(t=>
+    t.city.toLowerCase().includes(q)||
+    t.country.toLowerCase().includes(q)||
+    t.tz.toLowerCase().includes(q)
+  ).slice(0,8);
+  if(!matches.length){searchResults.classList.remove('show');return;}
+  searchResults.innerHTML=matches.map(m=>`
+    <div class="search-result-item" onclick="addZone('${m.city}','${m.tz}','${m.country}')">
+      <span class="tz-name">${m.city}, ${m.country}</span>
+      <span class="tz-offset">${getOffsetStr(m.tz)}</span>
+    </div>
+  `).join('');
+  searchResults.classList.add('show');
+});
+searchInput.addEventListener('keydown',e=>{if(e.key==='Escape'){searchResults.classList.remove('show');searchInput.blur();}});
+document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))searchResults.classList.remove('show');});
+
+// ─── ZONE MANAGEMENT ───
+function addZone(city,tz,country){
+  if(zones.find(z=>z.tz===tz&&z.city===city))return;
+  zones.push({city,tz,country});
+  if(!customHours[tz])customHours[tz]={start:9,end:18};
+  if(!availability[tz])availability[tz]=[];
+  searchInput.value='';
+  searchResults.classList.remove('show');
+  updateURL();
+  render();
+}
+function removeZone(idx){
+  const z=zones[idx];
+  delete customHours[z.tz];
+  delete availability[z.tz];
+  zones.splice(idx,1);
+  updateURL();
+  render();
+}
+
+// ─── TIME SLIDER ───
+const timeSlider=document.getElementById('timeSlider');
+const sliderLabel=document.getElementById('sliderLabel');
+timeSlider.addEventListener('input',()=>{
+  sliderOffset=parseInt(timeSlider.value);
+  updateSliderLabel();
+  render();
+});
+function updateSliderLabel(){
+  if(sliderOffset===0){sliderLabel.textContent='NOW';}
+  else{
+    const h=Math.floor(sliderOffset/60),m=sliderOffset%60;
+    sliderLabel.textContent=`+${h}:${String(m).padStart(2,'0')}`;
+  }
+}
+function resetToNow(){
+  sliderOffset=0;
+  timeSlider.value=0;
+  sliderLabel.textContent='NOW';
+  render();
+}
+
+// ─── AVAILABILITY ───
+function toggleAvailMode(){
+  availMode=!availMode;
+  const btn=document.getElementById('availToggleBtn');
+  if(availMode){
+    btn.classList.add('btn-glow');
+    btn.textContent='✓ Editing Availability';
+  }else{
+    btn.classList.remove('btn-glow');
+    btn.textContent='◉ Set Availability';
+  }
+  render();
+}
+function toggleAvailHour(tz,utcHour){
+  if(!availMode)return;
+  if(!availability[tz])availability[tz]=[];
+  const idx=availability[tz].indexOf(utcHour);
+  if(idx===-1)availability[tz].push(utcHour);
+  else availability[tz].splice(idx,1);
+  updateURL();
+  render();
+}
+function clearAvailability(){
+  for(const tz in availability)availability[tz]=[];
+  updateURL();
+  render();
+}
+
+// ─── CUSTOM HOURS ───
+function updateCustomHours(tz,field,val){
+  const n=parseInt(val);
+  if(isNaN(n)||n<0||n>23)return;
+  if(!customHours[tz])customHours[tz]={start:9,end:18};
+  customHours[tz][field]=n;
+  updateURL();
+  render();
+}
+
+// ─── RENDER ───
+function render(){
+  const container=document.getElementById('zonesContainer');
+  const emptyState=document.getElementById('emptyState');
+  const headerRow=document.getElementById('hourHeaderRow');
+  const overlapPanel=document.getElementById('overlapPanel');
+  const hoursPanel=document.getElementById('hoursPanel');
+  const availPanel=document.getElementById('availPanel');
+  const legend=document.getElementById('legend');
+  const dateDisplay=document.getElementById('dateDisplay');
+  const viewTime=getCurrentTime();
+  const localTz=Intl.DateTimeFormat().resolvedOptions().timeZone;
+  dateDisplay.textContent=formatDate(localTz,viewTime);
+
+  if(!zones.length){
+    container.innerHTML='';
+    container.appendChild(emptyState);
+    emptyState.style.display='';
+    headerRow.style.display='none';
+    overlapPanel.style.display='none';
+    hoursPanel.style.display='none';
+    availPanel.style.display='none';
+    legend.style.display='none';
+    return;
+  }
+  emptyState.style.display='none';
+  headerRow.style.display='grid';
+  legend.style.display='flex';
+
+  // Hour headers (UTC-based)
+  document.getElementById('hourHeaders').innerHTML=
+    Array.from({length:24},(_,i)=>`<div class="hour-header">${String(i).padStart(2,'0')}</div>`).join('');
+
+  // Overlap: find UTC hours where ALL zones are within their active hours
+  const overlapUTC=findOverlap(viewTime);
+
+  // Zone rows
+  container.innerHTML=zones.map((zone,idx)=>{
+    const localTime=formatTime(zone.tz,viewTime);
+    const offset=getOffsetStr(zone.tz);
+    const localDate=formatDate(zone.tz,viewTime);
+    const active=getActiveHours(zone.tz);
+    const zoneAvail=availability[zone.tz]||[];
+
+    const blocks=Array.from({length:24},(_,utcH)=>{
+      const testDate=new Date(viewTime);
+      testDate.setUTCHours(utcH,0,0,0);
+      const localH=getTimeInZone(zone.tz,testDate).getHours();
+      const isBusiness=localH>=active.start&&localH<active.end;
+      const isOverlap=overlapUTC.includes(utcH)&&zones.length>1;
+      const isCurrent=utcH===viewTime.getUTCHours();
+      const isAvail=zoneAvail.includes(utcH);
+
+      let cls=isBusiness?'business':'offhours';
+      if(isOverlap)cls='overlap';
+      if(isAvail)cls='available';
+      if(isAvail&&isOverlap)cls='available overlap';
+      if(isCurrent)cls+=' current';
+
+      const clickHandler=availMode?`onclick="toggleAvailHour('${zone.tz}',${utcH})"`:'';
+
+      return `<div class="hour-block ${cls}" ${clickHandler} title="${String(localH).padStart(2,'0')}:00 ${zone.city}">
+        <span class="hour-label">${String(localH).padStart(2,'0')}</span>
+      </div>`;
+    }).join('');
+
+    return `<div class="zone-row">
+      <div class="zone-info">
+        <div class="zone-city">${zone.city}</div>
+        <div class="zone-meta">
+          <span class="zone-time">${localTime}</span>
+          <span>${offset}</span>
+          <span>${localDate}</span>
+        </div>
+      </div>
+      <div class="zone-strip">${blocks}</div>
+      <div class="zone-remove" onclick="removeZone(${idx})">×</div>
+    </div>`;
+  }).join('');
+
+  // Custom hours editor
+  hoursPanel.style.display='';
+  document.getElementById('hoursEditor').innerHTML=zones.map(z=>{
+    const h=getActiveHours(z.tz);
+    return `<div class="hours-zone-chip">
+      <label>${z.city}</label>
+      <input type="number" min="0" max="23" value="${h.start}" onchange="updateCustomHours('${z.tz}','start',this.value)">
+      <span>to</span>
+      <input type="number" min="0" max="23" value="${h.end}" onchange="updateCustomHours('${z.tz}','end',this.value)">
+    </div>`;
+  }).join('');
+
+  // Overlap panel
+  if(zones.length>1){
+    overlapPanel.style.display='';
+    const wEl=document.getElementById('overlapWindows');
+    const dEl=document.getElementById('overlapDetail');
+    if(!overlapUTC.length){
+      wEl.innerHTML='<div class="no-overlap">No overlapping active hours across all zones.</div>';
+      dEl.innerHTML='';
+    }else{
+      const ranges=groupConsecutive(overlapUTC);
+      wEl.innerHTML=ranges.map(r=>{
+        const s=new Date(viewTime);s.setUTCHours(r[0],0,0,0);
+        const e=new Date(viewTime);e.setUTCHours(r[r.length-1]+1,0,0,0);
+        const label=zones.map(z=>`${z.city} ${formatTime(z.tz,s)}–${formatTime(z.tz,e)}`).join(' · ');
+        return `<div class="overlap-window" title="${label}">${formatTime(zones[0].tz,s)}–${formatTime(zones[0].tz,e)} ${zones[0].city}</div>`;
+      }).join('');
+      dEl.innerHTML=ranges.map(r=>{
+        const s=new Date(viewTime);s.setUTCHours(r[0],0,0,0);
+        const e=new Date(viewTime);e.setUTCHours(r[r.length-1]+1,0,0,0);
+        return zones.map(z=>`${z.city} ${formatTime(z.tz,s)}–${formatTime(z.tz,e)}`).join(' &nbsp;·&nbsp; ');
+      }).join('<br>');
+    }
+  }else{overlapPanel.style.display='none';}
+
+  // Availability panel
+  availPanel.style.display=availMode?'':'none';
+}
+
+function findOverlap(viewTime){
+  if(zones.length<2)return[];
+  const hours=[];
+  for(let utcH=0;utcH<24;utcH++){
+    let all=true;
+    for(const z of zones){
+      const td=new Date(viewTime);td.setUTCHours(utcH,0,0,0);
+      const lh=getTimeInZone(z.tz,td).getHours();
+      const a=getActiveHours(z.tz);
+      if(lh<a.start||lh>=a.end){all=false;break;}
+    }
+    if(all)hours.push(utcH);
+  }
+  return hours;
+}
+
+function groupConsecutive(arr){
+  if(!arr.length)return[];
+  const s=[...arr].sort((a,b)=>a-b);
+  const g=[[s[0]]];
+  for(let i=1;i<s.length;i++){
+    if(s[i]===s[i-1]+1)g[g.length-1].push(s[i]);
+    else g.push([s[i]]);
+  }
+  return g;
+}
+
+// ─── URL STATE ───
+function encodeState(){
+  const zStr=zones.map(z=>`${encodeURIComponent(z.city)}|${encodeURIComponent(z.tz)}|${z.country}`).join(',');
+  const hStr=Object.entries(customHours).map(([tz,h])=>`${encodeURIComponent(tz)}:${h.start}-${h.end}`).join(',');
+  const aStr=Object.entries(availability).filter(([_,hrs])=>hrs.length).map(([tz,hrs])=>`${encodeURIComponent(tz)}:${hrs.join('.')}`).join(',');
+  return{zones:zStr,hours:hStr,avail:aStr};
+}
+function updateURL(){
+  const{zones:zStr,hours:hStr,avail:aStr}=encodeState();
+  const u=new URL(window.location);
+  if(zones.length)u.searchParams.set('z',zStr);else u.searchParams.delete('z');
+  if(hStr)u.searchParams.set('h',hStr);else u.searchParams.delete('h');
+  if(aStr)u.searchParams.set('a',aStr);else u.searchParams.delete('a');
+  try{window.history.replaceState({},'',u);}catch(e){}
+}
+function loadFromURL(){
+  const p=new URLSearchParams(window.location.search);
+  const zP=p.get('z');
+  if(zP){
+    zones=zP.split(',').map(s=>{
+      const[city,tz,country]=s.split('|').map(decodeURIComponent);
+      return{city,tz,country};
+    }).filter(z=>z.city&&z.tz);
+  }
+  const hP=p.get('h');
+  if(hP){
+    hP.split(',').forEach(s=>{
+      const[tz,range]=s.split(':').map(decodeURIComponent);
+      const[start,end]=range.split('-').map(Number);
+      if(!isNaN(start)&&!isNaN(end))customHours[tz]={start,end};
+    });
+  }
+  const aP=p.get('a');
+  if(aP){
+    aP.split(',').forEach(s=>{
+      const idx=s.indexOf(':');
+      if(idx===-1)return;
+      const tz=decodeURIComponent(s.slice(0,idx));
+      const hrs=s.slice(idx+1).split('.').map(Number).filter(n=>!isNaN(n));
+      availability[tz]=hrs;
+    });
+  }
+  // Init custom hours for loaded zones
+  zones.forEach(z=>{
+    if(!customHours[z.tz])customHours[z.tz]={start:9,end:18};
+    if(!availability[z.tz])availability[z.tz]=[];
+  });
+}
+
+// ─── SHARE ───
+function openShareModal(){
+  updateURL();
+  document.getElementById('shareUrl').value=window.location.href;
+  document.getElementById('shareModal').classList.add('show');
+}
+function closeShareModal(){document.getElementById('shareModal').classList.remove('show');}
+function copyShareLink(){
+  navigator.clipboard.writeText(document.getElementById('shareUrl').value).then(()=>{
+    showToast('Copied to clipboard ✓');
+    closeShareModal();
+  });
+}
+function generateAvailLink(){
+  updateURL();
+  navigator.clipboard.writeText(window.location.href).then(()=>{
+    showToast('Availability link copied ✓');
+  });
+}
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+document.getElementById('shareModal').addEventListener('click',e=>{
+  if(e.target===e.currentTarget)closeShareModal();
+});
+
+// ─── KEYBOARD SHORTCUTS ───
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT')return;
+  if(e.key==='/'){e.preventDefault();searchInput.focus();}
+  if(e.key==='ArrowRight'){
+    sliderOffset=Math.min(1439,sliderOffset+30);
+    timeSlider.value=sliderOffset;
+    updateSliderLabel();render();
+  }
+  if(e.key==='ArrowLeft'){
+    sliderOffset=Math.max(0,sliderOffset-30);
+    timeSlider.value=sliderOffset;
+    updateSliderLabel();render();
+  }
+  if(e.key==='Escape'){
+    searchInput.blur();
+    searchResults.classList.remove('show');
+  }
+});
+
+// ─── INIT ───
+loadFromURL();
+if(!zones.length){
+  zones=[
+    {city:'Hong Kong',tz:'Asia/Hong_Kong',country:'HK'},
+    {city:'Singapore',tz:'Asia/Singapore',country:'SG'},
+    {city:'New York',tz:'America/New_York',country:'US'},
+    {city:'London',tz:'Europe/London',country:'UK'},
+  ];
+  zones.forEach(z=>{
+    customHours[z.tz]={start:9,end:18};
+    availability[z.tz]=[];
+  });
+  updateURL();
+}
+render();
+setInterval(()=>{if(sliderOffset===0)render();},60000);
+</script>
+</body>
+</html>
