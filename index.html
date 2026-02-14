@@ -381,31 +381,35 @@ function render(){
   const viewTime=getCurrentTime();
   if(!zones.length){container.innerHTML='';container.appendChild(emptyState);emptyState.style.display='';headerRow.style.display='none';overlapPanel.style.display='none';hoursPanel.style.display='none';availPanel.style.display='none';legend.style.display='none';return;}
   emptyState.style.display='none';headerRow.style.display='grid';legend.style.display='flex';
-  document.getElementById('hourHeaders').innerHTML='<div class="header-time-indicator" id="headerIndicator"></div>'+Array.from({length:24},(_,i)=>`<div class="hour-header">${String(i).padStart(2,'0')}</div>`).join('');
-  // Position header indicator based on UTC fractional hour
-  const utcFrac=viewTime.getUTCHours()+viewTime.getUTCMinutes()/60;
-  const hdrPct=(utcFrac/24)*100;
-  requestAnimationFrame(()=>{const hi=document.getElementById('headerIndicator');if(hi)hi.style.left=`calc(${hdrPct}%)`});
-  const overlapUTC=findOverlap(viewTime);
+
+  // Header shows local hours 0-23 (for first zone as reference)
+  document.getElementById('hourHeaders').innerHTML=Array.from({length:24},(_,i)=>`<div class="hour-header">${String(i).padStart(2,'0')}</div>`).join('');
+
+  const overlapHours=findOverlapLocal(viewTime);
+
   container.innerHTML=zones.map((zone,idx)=>{
     const localTime=formatTime(zone.tz,viewTime),offset=getOffsetStr(zone.tz),localDate=formatDate(zone.tz,viewTime);
     const active=getActiveHours(zone.tz),zoneAvail=availability[zone.tz]||[],isFirst=idx===0;
-    // Calculate time indicator position in UTC (matches block layout which is UTC 0-23)
-    const utcFracZone=viewTime.getUTCHours()+viewTime.getUTCMinutes()/60;
-    const pct=(utcFracZone/24)*100;
-    const blocks=Array.from({length:24},(_,utcH)=>{
-      const td=new Date(viewTime);td.setUTCHours(utcH,0,0,0);
-      const lh=getTimeInZone(zone.tz,td).getHours();
-      const isActive=(active.start<active.end)?(lh>=active.start&&lh<active.end):(active.start===active.end?true:(lh>=active.start||lh<active.end));
-      const isOverlap=overlapUTC.includes(utcH)&&zones.length>1;
-      const isAvail=zoneAvail.includes(utcH);
+
+    // Current local time in this zone (fractional for indicator)
+    const localNow=getTimeInZone(zone.tz,viewTime);
+    const localFrac=localNow.getHours()+localNow.getMinutes()/60;
+    const indicatorPct=(localFrac/24)*100;
+
+    // Blocks: local hours 0-23
+    const blocks=Array.from({length:24},(_,localH)=>{
+      const isActive=(active.start<active.end)?(localH>=active.start&&localH<active.end):(active.start===active.end?true:(localH>=active.start||localH<active.end));
+      const isOverlap=overlapHours.includes(localH)&&zones.length>1;
+      // For availability, we store by local hour for this zone
+      const isAvail=zoneAvail.includes(localH);
       let cls=isActive?'active-hr':'offhours';
       if(isOverlap)cls='overlap';if(isAvail)cls='available';if(isAvail&&isOverlap)cls='available overlap';
       const clickable=availMode&&isFirst;if(clickable)cls+=' clickable';
-      const handler=clickable?`onclick="toggleAvailHour('${zone.tz}',${utcH})"`:'';
-      return `<div class="hour-block ${cls}" ${handler} title="${String(lh).padStart(2,'0')}:00 ${zone.city}"><span class="hour-label">${String(lh).padStart(2,'0')}</span></div>`;
+      const handler=clickable?`onclick="toggleAvailHour('${zone.tz}',${localH})"`:'';
+      return `<div class="hour-block ${cls}" ${handler} title="${String(localH).padStart(2,'0')}:00 ${zone.city}"><span class="hour-label">${String(localH).padStart(2,'0')}</span></div>`;
     }).join('');
-    return `<div class="zone-row"><div class="zone-info"><div class="zone-city">${zone.city}</div><div class="zone-meta"><span class="zone-time">${localTime}</span><span>${offset}</span><span>${localDate}</span></div></div><div class="zone-strip"><div class="time-indicator" style="left:calc(6px + (100% - 12px) * ${pct / 100})"></div>${blocks}</div><div class="zone-remove" onclick="removeZone(${idx})" title="Remove">×</div></div>`;
+
+    return `<div class="zone-row"><div class="zone-info"><div class="zone-city">${zone.city}</div><div class="zone-meta"><span class="zone-time">${localTime}</span><span>${offset}</span><span>${localDate}</span></div></div><div class="zone-strip"><div class="time-indicator" style="left:calc(6px + (100% - 12px) * ${indicatorPct / 100})"></div>${blocks}</div><div class="zone-remove" onclick="removeZone(${idx})" title="Remove">×</div></div>`;
   }).join('');
 
   hoursPanel.style.display='';
@@ -416,21 +420,50 @@ function render(){
 
   if(zones.length>1){
     overlapPanel.style.display='';const wEl=document.getElementById('overlapWindows'),dEl=document.getElementById('overlapDetail');
-    if(!overlapUTC.length){wEl.innerHTML='<div class="no-overlap">No overlapping active hours across all zones.</div>';dEl.innerHTML='';}
-    else{const ranges=groupConsecutive(overlapUTC);
-      wEl.innerHTML=ranges.map(r=>{const s=new Date(viewTime);s.setUTCHours(r[0],0,0,0);const e=new Date(viewTime);e.setUTCHours(r[r.length-1]+1,0,0,0);return `<div class="overlap-window">${formatTime(zones[0].tz,s)}–${formatTime(zones[0].tz,e)} ${zones[0].city}</div>`;}).join('');
-      dEl.innerHTML=ranges.map(r=>{const s=new Date(viewTime);s.setUTCHours(r[0],0,0,0);const e=new Date(viewTime);e.setUTCHours(r[r.length-1]+1,0,0,0);return zones.map(z=>`${z.city} ${formatTime(z.tz,s)}–${formatTime(z.tz,e)}`).join(' &nbsp;·&nbsp; ');}).join('<br>');
+    if(!overlapHours.length){wEl.innerHTML='<div class="no-overlap">No overlapping active hours across all zones.</div>';dEl.innerHTML='';}
+    else{const ranges=groupConsecutive(overlapHours);
+      // For display, convert first-zone local hours to each zone's local time
+      const refLocal=getTimeInZone(zones[0].tz,viewTime);
+      wEl.innerHTML=ranges.map(r=>{
+        const startH=r[0],endH=r[r.length-1]+1;
+        return `<div class="overlap-window">${String(startH).padStart(2,'0')}:00–${String(endH%24).padStart(2,'0')}:00 ${zones[0].city}</div>`;
+      }).join('');
+      dEl.innerHTML=ranges.map(r=>{
+        const startH=r[0],endH=r[r.length-1]+1;
+        // Convert these first-zone local hours to each zone
+        const diffFromRef=startH-refLocal.getHours();
+        const startUTC=new Date(viewTime.getTime()+diffFromRef*3600000);
+        const diffEnd=endH-refLocal.getHours();
+        const endUTC=new Date(viewTime.getTime()+diffEnd*3600000);
+        return zones.map(z=>`${z.city} ${formatTime(z.tz,startUTC)}–${formatTime(z.tz,endUTC)}`).join(' &nbsp;·&nbsp; ');
+      }).join('<br>');
     }
   }else overlapPanel.style.display='none';
   availPanel.style.display=availMode?'':'none';
 }
 
-function findOverlap(viewTime){
-  if(zones.length<2)return[];const hrs=[];
-  for(let utcH=0;utcH<24;utcH++){let all=true;
-    for(const z of zones){const td=new Date(viewTime);td.setUTCHours(utcH,0,0,0);const lh=getTimeInZone(z.tz,td).getHours();const a=getActiveHours(z.tz);
-    const isActive=(a.start<a.end)?(lh>=a.start&&lh<a.end):(a.start===a.end?true:(lh>=a.start||lh<a.end));
-    if(!isActive){all=false;break;}}if(all)hrs.push(utcH);}return hrs;
+// Find local hours (of the first zone) where ALL zones are in their active hours
+function findOverlapLocal(viewTime){
+  if(zones.length<2)return[];
+  const hrs=[];
+  for(let h=0;h<24;h++){
+    // For each local hour of the first zone, find the corresponding UTC time
+    const refDate=new Date(viewTime);
+    const refLocal=getTimeInZone(zones[0].tz,refDate);
+    // Build a date at this local hour in the first zone by offsetting from current
+    const diff=h-refLocal.getHours();
+    const testUTC=new Date(refDate.getTime()+diff*3600000);
+    // Now check all zones
+    let all=true;
+    for(const z of zones){
+      const localH=getTimeInZone(z.tz,testUTC).getHours();
+      const a=getActiveHours(z.tz);
+      const isActive=(a.start<a.end)?(localH>=a.start&&localH<a.end):(a.start===a.end?true:(localH>=a.start||localH<a.end));
+      if(!isActive){all=false;break;}
+    }
+    if(all)hrs.push(h);
+  }
+  return hrs;
 }
 function groupConsecutive(arr){if(!arr.length)return[];const s=[...arr].sort((a,b)=>a-b);const g=[[s[0]]];for(let i=1;i<s.length;i++){if(s[i]===s[i-1]+1)g[g.length-1].push(s[i]);else g.push([s[i]]);}return g;}
 
