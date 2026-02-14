@@ -158,7 +158,7 @@ input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;hei
   <div class="toolbar-right">
     <div class="slider-hint">Peek ahead/behind</div>
     <div class="time-slider-wrap">
-      <input type="range" id="timeSlider" min="-720" max="720" value="0">
+      <input type="range" id="timeSlider" min="-1440" max="1440" value="0">
       <span class="time-slider-label" id="sliderLabel">NOW</span>
     </div>
   </div>
@@ -259,7 +259,7 @@ function buildTzDb(){
 }
 const TZ_DB=buildTzDb();
 
-let zones=[],sliderOffset=0,availMode=false,availability={},customHours={};
+let zones=[],sliderOffset=0,availMode=false,availability={},customHours={},lastMatches=[];
 const STORAGE_KEY='parallax_state';
 
 function getOffsetStr(tz){try{const p=new Intl.DateTimeFormat('en-US',{timeZone:tz,timeZoneName:'shortOffset'}).formatToParts(new Date());return(p.find(x=>x.type==='timeZoneName')||{}).value||'';}catch{return'';}}
@@ -298,10 +298,11 @@ searchInput.addEventListener('input',()=>{
   if(q.length<1){searchResults.classList.remove('show');return;}
   const matches=TZ_DB.filter(t=>t.city.toLowerCase().includes(q)||t.tz.toLowerCase().includes(q)||t.region.toLowerCase().includes(q)).filter(t=>!zones.find(z=>z.tz===t.tz&&z.city===t.city)).slice(0,10);
   if(!matches.length){searchResults.innerHTML='<div style="padding:12px 14px;color:var(--text-muted);font-size:12px;">No match</div>';searchResults.classList.add('show');return;}
-  searchResults.innerHTML=matches.map(m=>`<div class="search-result-item" data-city="${m.city}" data-tz="${m.tz}" data-region="${m.region}"><span class="tz-name">${m.city}</span><span class="tz-offset">${m.tz} · ${getOffsetStr(m.tz)}</span></div>`).join('');
+  searchResults.innerHTML=matches.map((m,i)=>`<div class="search-result-item" data-idx="${i}"><span class="tz-name">${m.city}</span><span class="tz-offset">${m.tz} · ${getOffsetStr(m.tz)}</span></div>`).join('');
+  lastMatches=matches;
   searchResults.classList.add('show');
 });
-searchResults.addEventListener('click',e=>{const item=e.target.closest('.search-result-item');if(item)addZone(item.dataset.city,item.dataset.tz,item.dataset.region);});
+searchResults.addEventListener('click',e=>{const item=e.target.closest('.search-result-item');if(item){const m=lastMatches[parseInt(item.dataset.idx)];if(m)addZone(m.city,m.tz,m.region);}});
 searchInput.addEventListener('keydown',e=>{if(e.key==='Escape'){searchResults.classList.remove('show');searchInput.blur();}});
 document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))searchResults.classList.remove('show');});
 
@@ -360,7 +361,7 @@ function render(){
       const lh=getTimeInZone(zone.tz,td).getHours();
       const isActive=(active.start<active.end)?(lh>=active.start&&lh<active.end):(active.start===active.end?true:(lh>=active.start||lh<active.end));
       const isOverlap=overlapUTC.includes(utcH)&&zones.length>1;
-      const isCurrent=utcH===viewTime.getUTCHours();
+      const isCurrent=utcH===viewTime.getUTCHours()&&Math.abs(sliderOffset)<60*24;
       const isAvail=zoneAvail.includes(utcH);
       let cls=isActive?'active-hr':'offhours';
       if(isOverlap)cls='overlap';if(isAvail)cls='available';if(isAvail&&isOverlap)cls='available overlap';if(isCurrent)cls+=' current';
@@ -406,8 +407,8 @@ document.getElementById('shareModal').addEventListener('click',e=>{if(e.target==
 document.addEventListener('keydown',e=>{
   if(e.target.tagName==='INPUT')return;
   if(e.key==='/'){e.preventDefault();searchInput.focus();}
-  if(e.key==='ArrowRight'){sliderOffset=Math.min(720,sliderOffset+30);timeSlider.value=sliderOffset;updateSliderLabel();render();}
-  if(e.key==='ArrowLeft'){sliderOffset=Math.max(-720,sliderOffset-30);timeSlider.value=sliderOffset;updateSliderLabel();render();}
+  if(e.key==='ArrowRight'){sliderOffset=Math.min(1440,sliderOffset+30);timeSlider.value=sliderOffset;updateSliderLabel();render();}
+  if(e.key==='ArrowLeft'){sliderOffset=Math.max(-1440,sliderOffset-30);timeSlider.value=sliderOffset;updateSliderLabel();render();}
   if(e.key==='Escape'){searchInput.blur();searchResults.classList.remove('show');}
 });
 
